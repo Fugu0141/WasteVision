@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#071a24" />
+    <title>WasteVision — On-device scanner demo</title>
+    <link rel="stylesheet" href="./demo/style.css" />
+  </head>
+  <body>
+    <main class="layout">
+      <header class="heading">
+        <p class="eyebrow">WASTEVISION / EXPERIMENTAL v0.1</p>
+        <h1>See waste differently.</h1>
+        <p>カメラ映像を端末内で解析し、検出した物体にラベルを重ねます。</p>
+      </header>
+      <section class="panel" aria-label="スキャナー">
+        <div class="viewport">
+          <video id="camera" autoplay muted playsinline aria-label="カメラ映像"></video>
+          <canvas id="overlay" aria-hidden="true"></canvas>
+          <div class="target" aria-hidden="true"></div>
+          <span class="camera-badge">ON-DEVICE VISION</span>
+        </div>
+        <div class="controls">
+          <button id="start" type="button">カメラを開始</button>
+          <button id="stop" type="button" disabled>停止</button>
+          <p id="status" role="status" aria-live="polite">準備完了。開始を押してください。</p>
+        </div>
+      </section>
+      <section class="information">
+        <div class="info-card">
+          <h2>Detected objects</h2>
+          <ul id="results"><li>検出待ち</li></ul>
+          <p class="note">物体認識の信頼度は、材質の信頼度ではありません。</p>
+        </div>
+        <div class="info-card">
+          <div class="card-title"><h2>SDK output</h2><button id="copy" type="button">JSONをコピー</button></div>
+          <pre id="json" aria-live="off">{ "detections": [] }</pre>
+        </div>
+      </section>
+      <footer>
+        <p>2D AR風オーバーレイ / 材質判定は未実装 / 画像はSDKから送信しません。</p>
+        <a href="https://github.com/Fugu0141/WasteVision">GitHub Repository</a>
+      </footer>
+    </main>
+    <script type="module" src="./demo/main.js"></script>
+  </body>
+</html>

@@ -1,0 +1,30 @@
+:root { font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #dcedf0; background: #061621; }
+* { box-sizing: border-box; }
+body { margin: 0; background: radial-gradient(ellipse at top left, #123342, #061621 58%); min-height: 100vh; }
+.layout { max-width: 1020px; margin: auto; padding: 36px 22px; }
+.heading { margin-bottom: 26px; }
+.eyebrow { color: #62eec7; font-size: 11px; font-weight: 800; letter-spacing: .19em; }
+h1 { font-size: clamp(2rem, 5vw, 3.6rem); letter-spacing: -.05em; margin: 8px 0; }
+.heading > p:last-child { color: #a8c3ca; margin: 0; }
+.panel, .info-card { background: #0d2633; border: 1px solid #28505e; border-radius: 18px; overflow: hidden; }
+.viewport { position: relative; background: #020b0f; min-height: 240px; overflow: hidden; }
+video { display: block; width: 100%; height: auto; min-height: 240px; background: #081720; }
+canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.target { position: absolute; left: 50%; top: 50%; width: 24px; height: 24px; transform: translate(-50%, -50%); border: 1px solid #ffffff55; border-radius: 50%; pointer-events: none; }
+.camera-badge { position: absolute; left: 16px; top: 16px; background: #061621d9; border: 1px solid #42e0b3aa; color: #8ff9d8; padding: 8px 10px; border-radius: 9px; font-size: 11px; letter-spacing: .1em; }
+.controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 17px; }
+button { font: inherit; font-weight: 700; cursor: pointer; background: #41deae; color: #062324; border: 0; border-radius: 10px; padding: 11px 17px; }
+button:disabled { opacity: .4; cursor: not-allowed; }
+#stop { background: #1b3d4a; color: white; }
+#status { margin: 0; color: #bdd6dc; font-size: 13px; flex: 1 1 230px; }
+.information { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+.info-card { padding: 18px; min-width: 0; }
+h2 { font-size: 1rem; margin: 0 0 16px; }
+ul { padding-left: 22px; overflow-wrap: anywhere; line-height: 1.9; }
+.note, footer { color: #9fbdc5; font-size: 12px; }
+.card-title { display: flex; justify-content: space-between; align-items: start; gap: 12px; }
+#copy { background: #234854; color: #e5f4f6; font-size: 12px; padding: 7px 10px; }
+pre { margin: 0; padding: 16px; border: 1px solid #21434f; border-radius: 12px; background: #061720; font-size: 12px; overflow: auto; max-height: 330px; white-space: pre-wrap; overflow-wrap: anywhere; }
+footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 18px; }
+a { color: #63e7c1; }
+@media (max-width: 720px) { .information { grid-template-columns: 1fr; } footer { flex-direction: column; align-items: start; } .layout { padding: 20px 12px; } }
