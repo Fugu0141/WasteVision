@@ -63,10 +63,13 @@ const empty = (status, reason) => ({
 export function normalizeRemoteRecognition(value) {
   if (!value || typeof value !== "object") return empty("unknown", "invalid_response");
   if (value.status === "unknown") return empty("unknown", "provider_uncertain");
+  if (value.status != null && value.status !== "recognized") {
+    return empty("unknown", "invalid_status");
+  }
   const label = typeof value.label === "string" ? value.label.trim() :
     typeof value.object === "string" ? value.object.trim() : "";
-  // Treat remote text as untrusted data; do not turn freeform paragraphs into labels.
-  if (!label || label.length > 80 || /[<>\n\r]/.test(label)) {
+  // Only allow a concise plain-text object name, never model instructions.
+  if (!label || label.length > 60 || !/^[\\p{L}\\p{N}_ -]+$/u.test(label)) {
     return empty("unknown", "invalid_label");
   }
   return {
