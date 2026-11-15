@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WasteVision — Camera Diagnostics</title>
+  <style>
+    body { background:#071a24; color:#f1fafb; font:16px/1.7 system-ui,sans-serif; margin:0; }
+    main { width:min(700px,92vw); margin:35px auto; }
+    h1 { font-size:1.5rem; }
+    button { padding:12px 17px; border:0; border-radius:9px; font:inherit; font-weight:700; background:#3fe3ad; }
+    button:disabled { opacity:.4; }
+    video { display:block; width:100%; background:#142f3d; border-radius:12px; margin:18px 0; }
+    pre { background:#102f3b; padding:14px; border-radius:10px; white-space:pre-wrap; overflow-wrap:anywhere; }
+    a { color:#5aefc5; }
+    #result { font-weight:700; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>WasteVision カメラ診断</h1>
+  <p>このページにはAIも外部ライブラリもありません。ブラウザのカメラ許可だけを確認します。</p>
+  <button type="button" id="start">カメラの許可を確認</button>
+  <button type="button" id="stop" disabled>停止</button>
+  <p id="result" role="status">準備完了</p>
+  <video id="preview" autoplay muted playsinline></video>
+  <h2>環境情報</h2>
+  <pre id="details"></pre>
+  <a href="./">WasteVisionに戻る</a>
+</main>
+<script>
+  const start = document.getElementById("start");
+  const stop = document.getElementById("stop");
+  const preview = document.getElementById("preview");
+  const result = document.getElementById("result");
+  const details = document.getElementById("details");
+  let stream = null;
+  const display = (note = "") => {
+    details.textContent = JSON.stringify({
+      url: location.href,
+      secureContext: window.isSecureContext,
+      cameraApiAvailable: Boolean(navigator.mediaDevices?.getUserMedia),
+      browser: navigator.userAgent,
+      note
+    }, null, 2);
+  };
+  display();
+  start.addEventListener("click", async () => {
+    start.disabled = true;
+    result.textContent = "カメラ権限を要求しています…";
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error("Camera APIがありません。HTTPSとブラウザの許可設定を確認してください。");
+      }
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" } }, audio: false
+      });
+      preview.srcObject = stream;
+      await preview.play();
+      result.textContent = "成功：カメラ映像を取得できました。";
+      display("camera-permission-granted");
+      stop.disabled = false;
+    } catch (error) {
+      result.textContent = "失敗：" + (error.message || error.name || String(error));
+      display(error.name + ": " + error.message);
+      start.disabled = false;
+    }
+  });
+  stop.addEventListener("click", () => {
+    stream?.getTracks().forEach((track) => track.stop());
+    stream = null;
+    preview.srcObject = null;
+    start.disabled = false;
+    stop.disabled = true;
+    result.textContent = "停止しました。";
+  });
+  window.addEventListener("pagehide", () => {
+    stream?.getTracks().forEach((track) => track.stop());
+  });
+</script>
+</body>
+</html>

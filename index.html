@@ -40,9 +40,55 @@
       </section>
       <footer>
         <p>2D AR風オーバーレイ / 材質判定は未実装 / 画像はSDKから送信しません。</p>
+        <a href="./camera-test.html">カメラだけを診断する</a>
         <a href="https://github.com/Fugu0141/WasteVision">GitHub Repository</a>
       </footer>
     </main>
+    <script>
+      // No bundler dependency: detect when the SDK module fails to load on GitHub Pages.
+      // This fallback deliberately works even when Pages publishes raw source files.
+      (() => {
+        const start = document.getElementById("start");
+        const stop = document.getElementById("stop");
+        const video = document.getElementById("camera");
+        const status = document.getElementById("status");
+        let diagnosticStream = null;
+        start.addEventListener("click", async () => {
+          if (start.dataset.sdkReady === "true") return;
+          start.disabled = true;
+          status.textContent = "診断モード：カメラのアクセスを確認中…";
+          try {
+            if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+              throw new Error("HTTPSまたはlocalhostで開いてください。カメラAPIが使えません。");
+            }
+            diagnosticStream = await navigator.mediaDevices.getUserMedia({
+              audio: false, video: { facingMode: { ideal: "environment" } }
+            });
+            video.srcObject = diagnosticStream;
+            video.muted = true;
+            video.playsInline = true;
+            await video.play();
+            status.textContent = "カメラ接続成功。ただしAIのJavaScriptが読み込めていません。GitHub Settings → Pages → Sourceを「GitHub Actions」に変更してください。";
+            stop.disabled = false;
+          } catch (error) {
+            status.textContent = "診断エラー：" + (error?.message || error?.name || String(error));
+            start.disabled = false;
+          }
+        });
+        stop.addEventListener("click", () => {
+          if (!diagnosticStream) return;
+          diagnosticStream.getTracks().forEach((track) => track.stop());
+          diagnosticStream = null;
+          video.srcObject = null;
+          stop.disabled = true;
+          start.disabled = false;
+          status.textContent = "診断を停止しました。";
+        });
+        window.addEventListener("pagehide", () => {
+          diagnosticStream?.getTracks().forEach((track) => track.stop());
+        });
+      })();
+    </script>
     <script type="module" src="./demo/main.js"></script>
   </body>
 </html>

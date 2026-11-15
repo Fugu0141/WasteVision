@@ -38,7 +38,11 @@ npm run dev
 
 GitHub Pages の公開ワークフローを追加しています。リポジトリの **Settings → Pages → Build and deployment → Source: GitHub Actions** を選び、Actions で Deploy WasteVision demo の成功を確認してください。
 
-公開先: **https://fugu0141.github.io/WasteVision/** （公開設定後）。
+公開先: **https://fugu0141.github.io/WasteVision/** （GitHub Actionsへの切替後）。
+
+**カメラが開かない場合**: [カメラ診断ページ](https://fugu0141.github.io/WasteVision/camera-test.html)を開き、`secureContext` と `cameraApiAvailable` を確認してください。このページはnpmやAIモデルに依存しません。カメラ診断ページが成功して本体が失敗する場合は、PagesのSourceがGitHub Actionsになっていること、Actionsのデプロイが成功していることを確認してください。初回公開後、キャッシュを消して再読み込みしてください。
+
+> 注意: GitHub Pagesでbranchベースの自動公開とGitHub Actionsによるカスタムデプロイが両方動くと、ビルド前のソースが配信される可能性があります。**Sourceは必ず GitHub Actions に統一してください。**
 
 HTTPのLANアドレスではカメラ権限を使用できない場合があります。HTTPSで開いてください。開始ボタンを押すとまずカメラ権限を要求し、映像を表示してからAIモデルを読み込みます。
 

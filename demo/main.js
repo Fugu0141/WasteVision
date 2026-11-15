@@ -6,6 +6,7 @@ const startButton = document.querySelector("#start");
 const stopButton = document.querySelector("#stop");
 const copyButton = document.querySelector("#copy");
 const status = document.querySelector("#status");
+startButton.dataset.sdkReady = "true";
 const results = document.querySelector("#results");
 const json = document.querySelector("#json");
 
