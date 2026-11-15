@@ -1,6 +1,10 @@
 # WasteVision — unknown-object geometry and material evidence (design proposal)
 
-Status: **DESIGN ONLY — v0.2.1 does not implement this pipeline**.
+Status: **partially implemented in v0.3**. Point-guided still-image
+segmentation, pixel geometry, and manual rectangle fallback now work in
+the code and demo; real-device accuracy and performance remain to be tested.
+Material evidence, calibration, and actual size inference are not implemented.
+See [implementation details](UNKNOWN-OBJECT-IMPLEMENTATION.md).
 
 ## Direction
 
@@ -132,12 +136,12 @@ both a `maskAvailable: false` state and `status: "unknown"`.
 ## v0.3 implementation order
 
 1. **Small core boundary and independent extension imports**: done in
-   v0.2.1; keep the existing demo local-only.
-2. **Manual point/rectangle selection and geometry output**: first v0.3
-   prototype with no requirement to recognize an object class. Define image
-   coordinate contracts and ensure mobile pointer handling.
-3. **Class-agnostic segmenter extension**: validate point/brush segmentation
-   on iOS Safari and Android Chrome; allow rectangle fallback.
+   v0.3; keep the existing demo local-only.
+2. **Manual point/rectangle selection and geometry output**: implemented
+   in v0.3, using still images and normalized touch coordinates.
+3. **Class-agnostic segmenter extension**: point-prompt prototype implemented
+   with MagicTouch v2; rectangle fallback implemented. Real iOS Safari and
+   Android Chrome validation is still required.
 4. **Scale-reference measurement extension**: pixel measurement is base,
    real-world estimates are opt-in with explicit calibration.
 5. **Materials evidence extension**: printed mark extraction (optional OCR)

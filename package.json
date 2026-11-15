@@ -7,7 +7,8 @@
   "exports": {
     ".": "./src/index.js",
     "./extensions/hybrid": "./src/extensions/hybrid.js",
-    "./extensions/segmentation": "./src/extensions/segmentation.js"
+    "./extensions/segmentation": "./src/extensions/segmentation.js",
+    "./geometry": "./src/geometry.js"
   },
   "scripts": {
     "dev": "vite --host 0.0.0.0",

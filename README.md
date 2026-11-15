@@ -1,13 +1,21 @@
 # WasteVision
 
-> **SDK scope (v0.2.1):** The default entry point is a small, on-device
+> **SDK scope (v0.3):** The default entry point is a small, on-device
 > object-detection SDK. Optional image upload / cloud AI integration is
 > isolated under `waste-vision/extensions/hybrid` and is **not** loaded by
 > the default demo. No cloud API or upload is required.
 
-Our next design priority is **unknown-object geometry and evidence-based
-material hints**, not forcing a COCO object name. See
-[Unknown-object recognition design](docs/UNKNOWN-OBJECT-STRATEGY.md).
+**NEW v0.3:** A tap-guided, class-agnostic segmentation experiment is now
+available in the browser demo. Unknown items can be outlined without knowing
+their object name, and the SDK can return image-plane geometry while keeping
+their material and real-world dimensions unknown.
+
+- Pure geometry helpers: `waste-vision/geometry`
+- Optional segmenter (loaded only after tapping): `waste-vision/extensions/segmentation`
+- Optional cloud integration (not loaded by default): `waste-vision/extensions/hybrid`
+
+See [v0.3 implementation guide](docs/UNKNOWN-OBJECT-IMPLEMENTATION.md) and
+[unknown-object design](docs/UNKNOWN-OBJECT-STRATEGY.md).
 
 
 **An on-device waste object detection SDK for web apps.**  
@@ -15,6 +23,33 @@ Webアプリに組み込める、ごみ・物体認識用JavaScript SDKの試作
 
 > [!IMPORTANT]
 > **v0.2 は物体名認識の試作版です。** カメラ映像から「bottle」「cup」などの物体を検出し、AR風の枠を重ねます。**材質（PET、金属、ガラスなど）を画像のみから確定判定する機能は未実装**です。物体の信頼度を材質の信頼度として扱いません。
+
+## v0.3 — 未知のものから特徴を読み取る
+
+スマホのデモで「カメラを開始」→「静止画を撮る」→画像内の物体を
+**タップ**すると、対象の輪郭を推定して緑色で表示します。
+**四角で範囲指定**はAIモデルなしで動作します。
+
+出力は輪郭のピクセル幅・高さ・面積・縦横比などです。
+**大きさは画像上のサイズで、cmではありません。材質は未判定**です。
+Google MagicTouchのセグメンテーションモデルは通常の物体検出とは別の
+任意機能として読み込まれます。
+
+```js
+import { analyzeMask } from "waste-vision/geometry";
+import { createInteractiveObjectSegmenter } from "waste-vision/extensions/segmentation";
+
+const segmenter = await createInteractiveObjectSegmenter({
+  wasmPath: "/wasm",
+  modelUrl: "/models/interactive_segmentation.task"
+});
+segmenter.setImage(frozenFrameCanvas); // still canvas, NOT a live stream
+const mask = segmenter.segmentPoint(0.5, 0.5); // normalized tap coordinates
+const observation = analyzeMask(mask);
+console.log(observation.geometry.widthPx);
+console.log(observation.material.value); // "unknown"
+segmenter.close();
+```
 
 ## v0.2 — 名前を返す認識SDK
 
@@ -44,6 +79,7 @@ git clone https://github.com/Fugu0141/WasteVision.git
 cd WasteVision
 npm install
 npm run prepare:assets
+npm run prepare:segmentation # optional: tap-guided object segmentation
 npm run dev
 ```
 
@@ -160,7 +196,7 @@ npm run build
 
 ## Status
 
-**Experimental / v0.2** — APIは変更される可能性があります。ライセンス・配布条件は公開前に確定します。
+**Experimental / v0.3** — APIは変更される可能性があります。ライセンス・配布条件は公開前に確定します。
 
 ### References
 
