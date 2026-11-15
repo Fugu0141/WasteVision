@@ -33,17 +33,20 @@ function render(result) {
 
 startButton.addEventListener("click", async () => {
   startButton.disabled = true;
-  status.textContent = "端末内AIの初期化中…";
+  status.textContent = "カメラの使用許可を確認しています…";
   try {
     if (!scanner) {
       const base = import.meta.env.BASE_URL;
-      const detector = await createMediaPipeDetector({
-        wasmPath: `${base}wasm`,
-        modelUrl: `${base}models/efficientdet_lite0.tflite`
-      });
       scanner = createWasteScanner({
-        video, overlay, detector,
+        video, overlay,
+        detectorFactory: () => createMediaPipeDetector({
+          wasmPath: base + "wasm",
+          modelUrl: base + "models/efficientdet_lite0.tflite"
+        }),
         fps: 5,
+        onCameraReady: () => {
+          status.textContent = "カメラ接続成功。端末内AIを初期化しています…";
+        },
         onResult: render,
         onError: (error) => {
           status.textContent = `認識エラー: ${error.message}`;
@@ -58,7 +61,11 @@ startButton.addEventListener("click", async () => {
     stopButton.disabled = false;
   } catch (error) {
     console.error(error);
-    status.textContent = `開始できません: ${error.message}`;
+    const secure = window.isSecureContext;
+    const guidance = !secure ? " HTTPSまたはlocalhostで開いてください。" :
+      error?.name === "NotAllowedError" ? " ブラウザ設定でカメラを許可してください。" :
+      " AIモデルの読み込み失敗ならモデル/WASMの配信を確認してください。";
+    status.textContent = `開始できません: ${error.message}` + guidance;
     startButton.disabled = false;
   }
 });

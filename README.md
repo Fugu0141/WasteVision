@@ -34,20 +34,27 @@ npm run dev
 
 > カメラを使うには HTTPS または localhost などの安全なコンテキストが必要です。スマホからLAN内の `http://192.168...` にアクセスするだけでは通常カメラを利用できません。
 
+## スマートフォンで試す
+
+GitHub Pages の公開ワークフローを追加しています。リポジトリの **Settings → Pages → Build and deployment → Source: GitHub Actions** を選び、Actions で Deploy WasteVision demo の成功を確認してください。
+
+公開先: **https://fugu0141.github.io/WasteVision/** （公開設定後）。
+
+HTTPのLANアドレスではカメラ権限を使用できない場合があります。HTTPSで開いてください。開始ボタンを押すとまずカメラ権限を要求し、映像を表示してからAIモデルを読み込みます。
+
 ## SDK API (prototype)
 
 ```js
 import { createWasteScanner, createMediaPipeDetector } from "./src/index.js";
 
-const detector = await createMediaPipeDetector({
-  wasmPath: "/wasm",
-  modelUrl: "/models/efficientdet_lite0.tflite",
-});
-
 const scanner = createWasteScanner({
   video: document.querySelector("video"),
   overlay: document.querySelector("canvas"),
-  detector,
+  detectorFactory: () => createMediaPipeDetector({
+    wasmPath: "/wasm",
+    modelUrl: "/models/efficientdet_lite0.tflite",
+  }),
+  onCameraReady: () => console.log("Camera ready, loading AI..."),
   fps: 5,
   onResult: (result) => console.log(result),
 });

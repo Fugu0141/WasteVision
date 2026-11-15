@@ -44,7 +44,8 @@ returns a detector implementing:
 - `detect(videoElement, timestampMs): RawDetection[]`
 - `close(): void`
 
-`createWasteScanner({video,overlay,detector,fps,onResult,onError})` returns:
+`createWasteScanner({video,overlay,detector?,detectorFactory?,fps,onCameraReady,onResult,onError})` returns:
+- Pass either a ready detector or async detectorFactory. When using a factory, camera permission and preview happen before AI initialization.
 - `start(): Promise<void>` — obtains camera stream (user permission)
 - `scan(): Promise<ScanResult>` — analyzes the current video frame
 - `stop(): void` — stops all camera tracks
