@@ -4,12 +4,21 @@
 Webアプリに組み込める、ごみ・物体認識用JavaScript SDKの試作プロジェクトです。
 
 > [!IMPORTANT]
-> **v0.1 は物体検出のプロトタイプです。** カメラ映像から「bottle」「cup」などの物体を検出し、AR風の枠を重ねます。**材質（PET、金属、ガラスなど）を画像のみから確定判定する機能は未実装**です。物体の信頼度を材質の信頼度として扱いません。
+> **v0.2 は物体名認識の試作版です。** カメラ映像から「bottle」「cup」などの物体を検出し、AR風の枠を重ねます。**材質（PET、金属、ガラスなど）を画像のみから確定判定する機能は未実装**です。物体の信頼度を材質の信頼度として扱いません。
+
+## v0.2 — 名前を返す認識SDK
+
+- **高精度モデル Lite2 / 軽量モデル Lite0** を画面から選択できます。高精度は比較的重くなります。
+- **数フレームの多数決**で不安定なラベルを抑制し、`result.text`（例: `"bottle"`）を返します。不確実な場合は `null` を返します。
+- `result.recognizedObjects` は安定判定した物体名の配列、`result.detections` は毎フレームの生の結果です。
+- この変更は**物体認識の精度が実測で改善したことを保証しません**。ごみの材質は引き続き `unknown` です。
+
+詳細: [Phase 2 の設計と評価方法](docs/PHASE-2.md)
 
 ## Features / 初期版の機能
 
 - カメラ映像を `getUserMedia` で取得（許可が必要）
-- MediaPipe Object Detector / EfficientDet-Lite0 をブラウザ端末内で実行
+- MediaPipe Object Detector / EfficientDet-Lite0 / Lite2 をブラウザ端末内で実行
 - バウンディングボックスとラベルをCanvasに描画（2D AR風オーバーレイ）
 - 検出結果をJavaScriptオブジェクトとして返す
 - 不明な材質を `unknown` として扱い、素材候補のみ提示
@@ -30,7 +39,7 @@ npm run dev
 
 表示された `http://localhost:5173` をブラウザで開き、「カメラを開始」を押してください。
 
-`prepare:assets` は MediaPipe のWASMを `node_modules` から `public/wasm` にコピーし、Googleが公開するEfficientDet-Lite0のモデルを `public/models` にダウンロードします。**初回セットアップにはインターネット接続が必要**です。実行時は自己ホストしたモデル/WASMを使用し、映像推論はローカルで実行します。npm依存パッケージはビルド後にアプリへ同梱されます。完全オフライン配信には、ビルド済みファイルを配布/キャッシュしてください。
+`prepare:assets` は MediaPipe のWASMを `node_modules` から `public/wasm` にコピーし、Googleが公開するEfficientDet-Lite0 / Lite2のモデルを `public/models` にダウンロードします。**初回セットアップにはインターネット接続が必要**です。実行時は自己ホストしたモデル/WASMを使用し、映像推論はローカルで実行します。npm依存パッケージはビルド後にアプリへ同梱されます。完全オフライン配信には、ビルド済みファイルを配布/キャッシュしてください。
 
 > カメラを使うには HTTPS または localhost などの安全なコンテキストが必要です。スマホからLAN内の `http://192.168...` にアクセスするだけでは通常カメラを利用できません。
 
@@ -56,7 +65,7 @@ const scanner = createWasteScanner({
   overlay: document.querySelector("canvas"),
   detectorFactory: () => createMediaPipeDetector({
     wasmPath: "/wasm",
-    modelUrl: "/models/efficientdet_lite0.tflite",
+    modelUrl: "/models/efficientdet_lite2.tflite",
   }),
   onCameraReady: () => console.log("Camera ready, loading AI..."),
   fps: 5,
@@ -65,6 +74,8 @@ const scanner = createWasteScanner({
 
 await scanner.start();
 const result = await scanner.scan();
+console.log(result.text); // e.g. "bottle" or null
+console.log(result.recognizedObjects); // e.g. ["bottle"]
 console.log(result.detections[0]?.material); // "unknown"
 scanner.stop();
 scanner.dispose();
@@ -75,6 +86,9 @@ scanner.dispose();
 ```json
 {
   "timestampMs": 13500,
+  "text": "bottle",
+  "recognizedObjects": ["bottle"],
+  "stableDetections": [{"object": "bottle", "stability": {"observations": 3, "window": 3}}],
   "detections": [
     {
       "object": "bottle",
@@ -121,7 +135,7 @@ npm run build
 
 ## Status
 
-**Experimental / v0.1** — APIは変更される可能性があります。ライセンス・配布条件は公開前に確定します。
+**Experimental / v0.2** — APIは変更される可能性があります。ライセンス・配布条件は公開前に確定します。
 
 ### References
 

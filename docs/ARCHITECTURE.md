@@ -1,4 +1,9 @@
-# WasteVision architecture — v0.1
+# WasteVision architecture — v0.2
+
+## Current focus
+
+v0.2 prioritizes stable **object-name text** rather than speculative material
+classification. See [Phase 2](PHASE-2.md) for exact results and test criteria.
 
 ## Goals
 
@@ -7,6 +12,7 @@
 3. 2D camera overlay and machine-readable recognition results.
 4. Clearly separate object identification from material verification.
 5. Swappable recognition engine for future waste-specific models.
+6. High-accuracy Lite2 vs fast Lite0 selection and temporal object-label voting.
 
 ## Non-goals of v0.1
 
@@ -90,6 +96,12 @@ Review upstream model/package redistribution terms and third-party notices befor
 - Include MediaPipe's documented performance/usage metrics behavior in privacy review; do not claim a zero-network app until verified.
 - Benchmark heat/battery, iOS Safari/Android Chrome, permission handling, and build artifacts before production.
 
+## v0.2 result additions
+
+The scanner preserves v0.1's `detections` field and adds `stableDetections`,
+`recognizedObjects: string[]`, `primaryObject`, and `text: string | null`.
+`text` is a stable canonical English object class, not a material prediction.
+
 ## Roadmap
 
 ### v0.1 — object-detection proof of concept
@@ -100,7 +112,7 @@ Review upstream model/package redistribution terms and third-party notices befor
 - [x] Basic tests
 - [ ] Real-device and performance verification
 
-### v0.2 — evidence-based material classification
+### Later — evidence-based material classification
 - [ ] Waste-specific dataset with item/material labels and licensing review
 - [ ] Independent material model with calibratable scores
 - [ ] Recycling mark recognition and OCR
