@@ -28,7 +28,7 @@ export function resolveMaterialHint(objectName) {
 
 export function normalizeDetection(raw) {
   const objectName = String(raw?.object ?? raw?.label ?? "unknown");
-  const confidence = Number(raw?.score);
+  const confidence = raw?.score == null ? NaN : Number(raw.score);
   const box = raw?.boundingBox ?? {};
   const n = (v) => Number.isFinite(Number(v)) ? Math.max(0, Number(v)) : 0;
   return {
