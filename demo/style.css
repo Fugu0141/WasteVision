@@ -28,3 +28,10 @@ pre { margin: 0; padding: 16px; border: 1px solid #21434f; border-radius: 12px; 
 footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 18px; }
 a { color: #63e7c1; }
 @media (max-width: 720px) { .information { grid-template-columns: 1fr; } footer { flex-direction: column; align-items: start; } .layout { padding: 20px 12px; } }
+
+.mode-control{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700;color:#b4d3da;}
+.mode-control select{background:#163b48;color:#efffff;border:1px solid #34788a;border-radius:10px;padding:10px;max-width:200px;font:inherit;}
+.mode-control select:disabled{opacity:.65;}
+.primary{font-size:clamp(1.4rem,3vw,2rem);font-weight:800;color:#64f1c7;margin:0 0 7px;overflow-wrap:anywhere;}
+.hint{color:#afcbd3;font-size:12px;margin:0 0 19px;}
+@media(max-width:600px){.controls{align-items:stretch;}.mode-control{width:100%;justify-content:space-between;}}
