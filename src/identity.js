@@ -101,10 +101,13 @@ export function createObjectRegistry({
           seenCount:0,seenFrame:-1,reidentified:false
         });
       }
+      // Rewrite on load so expired or malformed fingerprints are removed from disk.
+      persist();
     } catch { /* ignore corrupt/blocked local storage */ }
   };
   load();
   const prune = () => {
+    const beforeSize = records.size;
     for(const [id,r] of records) {
       if(now()-r.lastSeen>ttlMs && r.seenFrame!==frame)records.delete(id);
     }
@@ -112,6 +115,7 @@ export function createObjectRegistry({
       const ordered=[...records.values()].sort((a,b)=>a.lastSeen-b.lastSeen);
       for(const r of ordered.slice(0,records.size-maxObjects))records.delete(r.id);
     }
+    if (records.size !== beforeSize) persist();
   };
   const snapshots=()=>[...records.values()].map(publicRecord);
 

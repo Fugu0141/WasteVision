@@ -98,3 +98,20 @@ test("an object returning while AI is pending keeps the original ID",()=>{
  registry.attach(initial.id,{label:"recognized after returning"});
  assert.equal(registry.get(again.id).metadata.label,"recognized after returning");
 });
+
+test("expired fingerprints are cleaned from persistent local storage on reload",()=>{
+ let clock=100000;
+ const map=new Map();
+ const storage={
+  getItem:k=>map.get(k)??null,
+  setItem:(k,v)=>map.set(k,v),
+  removeItem:k=>map.delete(k)
+ };
+ const reg=createObjectRegistry({storage,now:()=>clock,ttlMs:500});
+ const original=reg.observe([make(red)])[0];
+ reg.attach(original.id,{label:"time limited"});
+ clock+=600;
+ const fresh=createObjectRegistry({storage,now:()=>clock,ttlMs:500});
+ assert.equal(fresh.list().length,0);
+ assert.equal(JSON.parse(storage.getItem("wastevision:objects:v1")).records.length,0);
+});
