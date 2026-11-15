@@ -4,3 +4,4 @@ export { resolveMaterialHint, normalizeDetection } from "./materials.js";
 export { createTemporalStabilizer, selectPrimaryObject } from "./temporal.js";
 export { getObjectDisplayName } from "./labels.js";
 export { chooseSnapshotRegion, captureWasteSnapshot, normalizeRemoteRecognition, recognizeWasteSnapshot } from "./hybrid.js";
+export { createHttpRecognitionProvider } from "./provider-http.js";
