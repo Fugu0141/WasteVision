@@ -1,6 +1,40 @@
 import { appearanceDistance } from "./appearance.js";
 import { intersectionOverUnion } from "./temporal.js";
 
+
+function safeMetadata(value, depth = 0) {
+  if (depth > 3) throw new TypeError("Analyzer metadata is too deeply nested.");
+  if (value === null || typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    if (value.length > 500 || /^data:|^blob:/i.test(value)) {
+      throw new TypeError("Raw image data or oversized metadata is not allowed.");
+    }
+    return value;
+  }
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (Array.isArray(value)) {
+    if (value.length > 16) throw new TypeError("Metadata array too large.");
+    return value.map(item => safeMetadata(item,depth+1));
+  }
+  if (typeof value === "object" && value) {
+    if (Object.getPrototypeOf(value) !== Object.prototype &&
+        Object.getPrototypeOf(value) !== null) {
+      throw new TypeError("Metadata must be plain JSON-like data.");
+    }
+    const keys=Object.keys(value);
+    if (keys.length > 20) throw new TypeError("Too many metadata properties.");
+    const clean=Object.create(null);
+    for (const key of keys) {
+      if (key.length>60 || ["__proto__","constructor","prototype"].includes(key)) {
+        throw new TypeError("Unsafe metadata property.");
+      }
+      clean[key]=safeMetadata(value[key],depth+1);
+    }
+    return clean;
+  }
+  throw new TypeError("Metadata must contain only JSON-safe values.");
+}
+
 const savedVersion = 1;
 const publicRecord = (record) => ({
   id: record.id,
@@ -151,7 +185,7 @@ export function createObjectRegistry({
       throw new TypeError("Analyzer must return metadata object.");
     }
     // Keep metadata separate from a model's uncalibrated score.
-    r.metadata=JSON.parse(JSON.stringify(metadata));
+    r.metadata=safeMetadata(metadata);
     r.status="known";
     r.lastSeen=now();
     persist();
