@@ -135,7 +135,7 @@ export function createObjectRegistry({
       if(!best) {
         // Conservative appearance-only matching when the item leaves & returns.
         const ranked=[...records.values()]
-          .filter(r=>r.metadata && !used.has(r.id) &&
+          .filter(r=>(r.metadata || r.status==="pending" || r.status==="captured") && !used.has(r.id) &&
             (r.seenFrame<0 || r.seenFrame<frame-3) &&
             (!r.localLabel || !item.object || r.localLabel===item.object))
           .map(r=>({r,d:appearanceDistance(r.descriptor,item.descriptor)}))

@@ -86,3 +86,15 @@ test("rejects raw image and oversized metadata from external analyzers",()=>{
  registry.attach(record.id,{label:"bottle",source:"local"});
  assert.equal(registry.get(record.id).metadata.source,"local");
 });
+
+test("an object returning while AI is pending keeps the original ID",()=>{
+ const registry=createObjectRegistry({idFactory:(()=>{let i=0;return ()=>String(++i)})()});
+ const initial=registry.observe([make(red,"bottle",40)])[0];
+ registry.setStatus(initial.id,"pending");
+ for(let i=0;i<5;i++)registry.observe([]);
+ const again=registry.observe([make(red,"bottle",300)])[0];
+ assert.equal(again.id,initial.id);
+ assert.equal(again.status,"pending");
+ registry.attach(initial.id,{label:"recognized after returning"});
+ assert.equal(registry.get(again.id).metadata.label,"recognized after returning");
+});
