@@ -1,5 +1,6 @@
 import {
-  createMediaPipeDetector, createWasteScanner, getObjectDisplayName
+  createMediaPipeDetector, createWasteScanner, getObjectDisplayName,
+  captureWasteSnapshot, recognizeWasteSnapshot, createHttpRecognitionProvider
 } from "../src/index.js";
 
 const video = document.querySelector("#camera");
@@ -13,11 +14,99 @@ const primary = document.querySelector("#primary");
 const recognitionHint = document.querySelector("#recognitionHint");
 const results = document.querySelector("#results");
 const json = document.querySelector("#json");
+const captureButton = document.querySelector("#capture");
+const sendButton = document.querySelector("#sendImage");
+const autoShot = document.querySelector("#autoShot");
+const shotPreview = document.querySelector("#shotPreview");
+const shotStatus = document.querySelector("#shotStatus");
+const remoteResult = document.querySelector("#remoteResult");
+
+// A backend URL is a public connection setting, not an API key.
+// GitHub Pages has no private backend; therefore upload is disabled by default.
+const proxyUrl = import.meta.env.VITE_WASTEVISION_AI_PROXY || "";
+let provider = null;
+try {
+  if (proxyUrl) provider = createHttpRecognitionProvider({ url: proxyUrl });
+} catch (error) {
+  console.error("Invalid image recognition proxy configuration:", error);
+}
+let shot = null;
+let shotUrl = null;
+let captureBusy = false;
+let lastAutoLabel = null;
+
+function discardShot() {
+  if (shotUrl) URL.revokeObjectURL(shotUrl);
+  shotUrl = null;
+  shot = null;
+  shotPreview.removeAttribute("src");
+  shotPreview.hidden = true;
+  sendButton.disabled = true;
+}
+
+async function takeShot(auto = false) {
+  if (!scanner?.running || captureBusy) return;
+  captureBusy = true;
+  captureButton.disabled = true;
+  const currentScanner = scanner;
+  try {
+    const target = currentScanner.latestResult.primaryObject;
+    const photo = await captureWasteSnapshot(video, {
+      boundingBox: target?.boundingBox ?? null
+    });
+    if (scanner !== currentScanner || !scanner.running) return;
+    discardShot();
+    shot = photo;
+    shotUrl = URL.createObjectURL(photo.blob);
+    shotPreview.src = shotUrl;
+    shotPreview.hidden = false;
+    shotStatus.textContent = (auto ? "自動撮影完了。" : "撮影完了。") +
+      " 切り出し範囲: " + (photo.crop.source === "center" ? "画面中央" : "ローカル検出枠") +
+      "。画像を確認してください。" +
+      (provider ? "『撮影画像をAIに送る』を押すと、この1枚を送信します。" :
+        " AI接続先は未設定のため、画像は端末外に送信されません。");
+    remoteResult.textContent = JSON.stringify({
+      status: provider ? "ready_for_manual_upload" : "provider_unavailable",
+      localHint: target?.object ?? null,
+      cropSource: photo.crop.source,
+      bytes: photo.blob.size
+    }, null, 2);
+    sendButton.disabled = !provider;
+  } catch (error) {
+    shotStatus.textContent = "撮影できません: " + error.message;
+  } finally {
+    captureBusy = false;
+    captureButton.disabled = !scanner?.running;
+  }
+}
+
+captureButton.addEventListener("click", () => takeShot());
+sendButton.addEventListener("click", async () => {
+  if (!shot || !provider || !scanner?.running) return;
+  sendButton.disabled = true;
+  shotStatus.textContent = "承認された画像1枚をAIに照会中…";
+  const result = await recognizeWasteSnapshot({
+    snapshot: shot, provider, consent: true,
+    localHint: scanner.latestResult.text
+  });
+  remoteResult.textContent = JSON.stringify(result, null, 2);
+  shotStatus.textContent = result.status === "recognized"
+    ? "クラウドで認識: " + result.text + "（ユーザーによる確認を推奨）"
+    : "クラウド判定: " + result.status + "。端末内の結果も引き続き利用できます。";
+});
+
 startButton.dataset.sdkReady = "true";
 
 let scanner = null;
 
 function render(result) {
+  if (autoShot.checked && result.text && result.text !== lastAutoLabel && !shot && !captureBusy) {
+    lastAutoLabel = result.text;
+    // Capture only. Upload always requires a separate explicit button press.
+    queueMicrotask(() => takeShot(true));
+  } else if (!result.text) {
+    lastAutoLabel = null;
+  }
   json.textContent = JSON.stringify(result, null, 2);
   if (result.text) {
     const label = getObjectDisplayName(result.text);
@@ -49,6 +138,9 @@ function render(result) {
 }
 
 function releaseScanner() {
+  discardShot();
+  lastAutoLabel = null;
+  captureButton.disabled = true;
   scanner?.dispose();
   scanner = null;
   modeSelect.disabled = false;
@@ -97,6 +189,7 @@ startButton.addEventListener("click", async () => {
       "高精度モードでスキャン中（端末内AI）" :
       "軽量モードでスキャン中（端末内AI）";
     stopButton.disabled = false;
+    captureButton.disabled = false;
   } catch (error) {
     console.error("WasteVision startup error:", error);
     status.textContent = "開始できません: " + explainError(error);
@@ -119,4 +212,7 @@ copyButton.addEventListener("click", async () => {
     copyButton.textContent = "コピーできませんでした";
   }
 });
-window.addEventListener("pagehide", () => scanner?.dispose());
+window.addEventListener("pagehide", () => {
+  discardShot();
+  scanner?.dispose();
+});
