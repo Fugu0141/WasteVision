@@ -27,6 +27,7 @@ jobs:
           node-version: '22'
       - run: npm install
       - run: npm run prepare:assets
+      - run: npm run prepare:segmentation
       - run: npm test
       - run: npm run build
       - uses: actions/configure-pages@v5

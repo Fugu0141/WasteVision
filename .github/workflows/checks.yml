@@ -14,6 +14,8 @@ jobs:
         run: npm install
       - name: Prepare self-hosted AI assets
         run: npm run prepare:assets
+      - name: Prepare optional segmentation demo model
+        run: npm run prepare:segmentation
       - name: Unit tests
         run: npm test
       - name: Build demo

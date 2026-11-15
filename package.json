@@ -1,19 +1,21 @@
 {
   "name": "waste-vision",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "private": true,
   "description": "On-device object recognition SDK with temporal stabilization",
   "type": "module",
   "exports": {
     ".": "./src/index.js",
-    "./extensions/hybrid": "./src/extensions/hybrid.js"
+    "./extensions/hybrid": "./src/extensions/hybrid.js",
+    "./extensions/segmentation": "./src/extensions/segmentation.js"
   },
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "preview": "vite preview",
     "test": "node --test",
-    "prepare:assets": "node scripts/prepare-assets.mjs"
+    "prepare:assets": "node scripts/prepare-assets.mjs",
+    "prepare:segmentation": "node scripts/prepare-segmentation.mjs"
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "1.2.3"

@@ -4,3 +4,4 @@ dist/
 public/wasm/
 public/models/*.tflite
 *.log
+public/models/*.task
