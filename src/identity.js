@@ -102,7 +102,7 @@ export function createObjectRegistry({
         // Conservative appearance-only matching when the item leaves & returns.
         const ranked=[...records.values()]
           .filter(r=>r.metadata && !used.has(r.id) &&
-            r.seenFrame<frame-3 &&
+            (r.seenFrame<0 || r.seenFrame<frame-3) &&
             (!r.localLabel || !item.object || r.localLabel===item.object))
           .map(r=>({r,d:appearanceDistance(r.descriptor,item.descriptor)}))
           .sort((a,b)=>a.d-b.d);
