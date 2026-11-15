@@ -1,4 +1,5 @@
 import { createMediaPipeDetector, createWasteScanner, getObjectDisplayName } from "../src/index.js";
+import { initializeUnknownObjectDemo } from "./unknown-object.js";
 
 const video = document.querySelector("#camera");
 const overlay = document.querySelector("#overlay");
@@ -14,6 +15,7 @@ const json = document.querySelector("#json");
 startButton.dataset.sdkReady = "true";
 
 let scanner = null;
+const unknownDemo = initializeUnknownObjectDemo({ video, getScanner: () => scanner });
 
 function render(result) {
   json.textContent = JSON.stringify(result, null, 2);
@@ -45,6 +47,7 @@ function render(result) {
 }
 
 function releaseScanner() {
+  unknownDemo.setCameraRunning(false);
   scanner?.dispose();
   scanner = null;
   modeSelect.disabled = false;
@@ -93,6 +96,7 @@ startButton.addEventListener("click", async () => {
       ? "高精度モードでスキャン中（端末内AI）"
       : "軽量モードでスキャン中（端末内AI）";
     stopButton.disabled = false;
+    unknownDemo.setCameraRunning(true);
   } catch (error) {
     console.error("WasteVision startup error:", error);
     status.textContent = "開始できません: " + explainError(error);
@@ -115,4 +119,4 @@ copyButton.addEventListener("click", async () => {
     copyButton.textContent = "コピーできませんでした";
   }
 });
-window.addEventListener("pagehide", () => scanner?.dispose());
+window.addEventListener("pagehide", () => { unknownDemo.dispose(); scanner?.dispose(); });

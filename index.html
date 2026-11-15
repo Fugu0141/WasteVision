@@ -10,7 +10,7 @@
   <body>
     <main class="layout">
       <header class="heading">
-        <p class="eyebrow">WASTEVISION / EXPERIMENTAL v0.2</p>
+        <p class="eyebrow">WASTEVISION / EXPERIMENTAL v0.3</p>
         <h1>See waste differently.</h1>
         <p>スマホ内でごみの物体名を推定。安定した認識結果をテキストで返します。</p>
       </header>
@@ -47,6 +47,31 @@
           <div class="card-title"><h2>SDK output</h2><button id="copy" type="button">JSONをコピー</button></div>
           <pre id="json" aria-live="off">{ "detections": [] }</pre>
         </div>
+      </section>
+      <section class="unknown-panel info-card" aria-label="未知物体の輪郭と大きさ">
+        <h2>Unknown object / 名前が分からないものを測る</h2>
+        <p class="note">物体名を推定できなくても輪郭を切り出せます。寸法は画像内のピクセル値です。</p>
+        <div class="unknown-controls">
+          <button id="freezeFrame" type="button" disabled>静止画を撮る</button>
+          <label for="regionMode">選択方法
+            <select id="regionMode">
+              <option value="tap" selected>タップして輪郭抽出（AI）</option>
+              <option value="rectangle">四角で範囲指定（手動）</option>
+            </select>
+          </label>
+        </div>
+        <div id="snapshotStage" class="snapshot-stage" hidden>
+          <canvas id="snapshotCanvas" aria-label="静止画。タップして物体の輪郭を抽出するか、ドラッグして領域を指定"></canvas>
+          <canvas id="maskOverlay" aria-hidden="true"></canvas>
+        </div>
+        <p id="unknownStatus" role="status" class="note">カメラを開始して静止画を撮影してください。</p>
+        <p id="unknownSummary" class="primary">物体名: 不明 / 材質: 不明</p>
+        <div class="card-title">
+          <h2>特徴データ / Geometry JSON</h2>
+          <button type="button" id="copyUnknown">JSONをコピー</button>
+        </div>
+        <pre id="unknownJson">{ "status": "idle" }</pre>
+        <p class="note">※輪郭抽出は画像内の推定領域です。画素から実寸（cm）や材質を確定することはできません。画像は外部に送信しません。</p>
       </section>
       <footer>
         <p>2D AR風オーバーレイ / 物体名をテキスト出力 / 材質判定は未実装。</p>
