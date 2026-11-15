@@ -76,3 +76,13 @@ test("camera pause invalidates spatial tracks but keeps recognized metadata",()=
  assert.equal(b.id,obj.id);
  assert.equal(b.metadata.label,"cached");
 });
+
+test("rejects raw image and oversized metadata from external analyzers",()=>{
+ const registry=createObjectRegistry();
+ const record=registry.observe([make(red)])[0];
+ assert.throws(()=>registry.attach(record.id,{raw:"data:image/jpeg;base64,xyz"}),/image/);
+ assert.throws(()=>registry.attach(record.id,{blob:new Blob(["jpeg"])}),/plain JSON/);
+ assert.equal(registry.get(record.id).metadata,null);
+ registry.attach(record.id,{label:"bottle",source:"local"});
+ assert.equal(registry.get(record.id).metadata.source,"local");
+});

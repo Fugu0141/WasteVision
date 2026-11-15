@@ -81,9 +81,14 @@ export function createAutoRecognition({
     // Same frame's pixel crops are sampled synchronously.
     const observations = [];
     for (const item of detections) {
-      const descriptor = sample(video, item.boundingBox);
-      if (!descriptor) continue;
-      observations.push({ object:item.object, boundingBox:item.boundingBox, descriptor });
+      try {
+        const descriptor = sample(video, item.boundingBox);
+        if (!descriptor) continue;
+        observations.push({ object:item.object, boundingBox:item.boundingBox, descriptor });
+      } catch (error) {
+        // Failure to sample a crop must not kill the host camera loop.
+        try { onError(error, null); } catch { /* ignore observer failures */ }
+      }
     }
     visible = registry.observe(observations);
     for (const record of visible) {
