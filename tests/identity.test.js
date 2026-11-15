@@ -65,3 +65,14 @@ test("unknown malformed saved descriptors are ignored",()=>{
  const r=createObjectRegistry({storage});
  assert.deepEqual(r.list(),[]);
 });
+
+test("camera pause invalidates spatial tracks but keeps recognized metadata",()=>{
+ const registry=createObjectRegistry({idFactory:()=>String(Math.random())});
+ const obj=registry.observe([make(red,"bottle",40)])[0];
+ registry.attach(obj.id,{label:"cached"});
+ registry.suspend();
+ assert.equal(registry.get(obj.id).boundingBox,null);
+ const b=registry.observe([make(red,"bottle",310)])[0];
+ assert.equal(b.id,obj.id);
+ assert.equal(b.metadata.label,"cached");
+});

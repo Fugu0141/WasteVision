@@ -104,6 +104,13 @@ export function createAutoRecognition({
     return result;
   }
 
+  function pause() {
+    // Camera stream may stop while an existing async request is still pending.
+    // Do not cancel it or throw away its record; just remove the stale boxes.
+    registry.suspend();
+    visible=[];
+    publish();
+  }
   function clear() {
     // Cancel any unfinished analyses so stale data is not reattached.
     for(const c of inFlight.values())c.abort();
@@ -119,7 +126,7 @@ export function createAutoRecognition({
     visible=[];
   }
   return {
-    ingest,attach,clear,dispose,
+    ingest,attach,pause,clear,dispose,
     get visible(){return visible.map(r=>({...r}));},
     get registry(){return registry;},
     get pendingCount(){return inFlight.size;}

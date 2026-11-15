@@ -116,6 +116,7 @@ function render(result) {
 function releaseScanner() {
   scanner?.dispose();
   scanner=null;
+  pipeline.pause();
   startButton.disabled=false;
   stopButton.disabled=true;
   modelMode.disabled=false;

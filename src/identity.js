@@ -157,6 +157,16 @@ export function createObjectRegistry({
     persist();
     return publicRecord(r);
   }
+  function suspend() {
+    // Camera stop must not retain screen positions as identity anchors.
+    // Keep the appearance descriptors and already attached metadata.
+    for(const r of records.values()) {
+      r.boundingBox=null;
+      r.seenCount=0;
+      r.seenFrame=-1;
+      r.reidentified=false;
+    }
+  }
   function clear() {
     records.clear();frame=0;
     if(storage)try{storage.removeItem(storageKey)}catch{}
@@ -167,7 +177,7 @@ export function createObjectRegistry({
     return deleted;
   }
   return {
-    observe,attach,setStatus,clear,forget,
+    observe,attach,setStatus,suspend,clear,forget,
     get(id){const r=records.get(id);return r?publicRecord(r):null;},
     list:snapshots,
     get minObservations(){return minObservations;}
