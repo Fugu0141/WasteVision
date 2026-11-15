@@ -118,3 +118,9 @@ npm run build
 ~~~
 
 **Experimental / v0.4** — API and package design may evolve.
+
+## License
+
+WasteVisionのオリジナルソースコードおよびドキュメントは **MIT License** で公開しています。詳細は [LICENSE](LICENSE) を参照してください。
+
+**注意：** MITライセンスは、外部ライブラリ（MediaPipeなど）やダウンロードする学習済みAIモデルのライセンスを変更するものではありません。再配布時は各依存物のライセンス・利用条件も個別に確認してください。
