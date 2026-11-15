@@ -1,204 +1,120 @@
 # WasteVision
 
-> **SDK scope (v0.3):** The default entry point is a small, on-device
-> object-detection SDK. Optional image upload / cloud AI integration is
-> isolated under `waste-vision/extensions/hybrid` and is **not** loaded by
-> the default demo. No cloud API or upload is required.
+**v0.4 — Local object memory and non-blocking auto-recognition SDK (experimental)**
 
-**NEW v0.3:** A tap-guided, class-agnostic segmentation experiment is now
-available in the browser demo. Unknown items can be outlined without knowing
-their object name, and the SDK can return image-plane geometry while keeping
-their material and real-world dimensions unknown.
+カメラに映った物体を自動でマークし、**物体ID / 色付きAR風枠 / 画像の自動切り出し / 非同期の認識結果 / 再登場時の結果再表示**を試すJavaScript SDKです。
 
-- Pure geometry helpers: `waste-vision/geometry`
-- Optional segmenter (loaded only after tapping): `waste-vision/extensions/segmentation`
-- Optional cloud integration (not loaded by default): `waste-vision/extensions/hybrid`
+[**Open mobile demo**](https://fugu0141.github.io/WasteVision/) · [**Technical guide**](docs/AUTO-TRACKING.md)
 
-See [v0.3 implementation guide](docs/UNKNOWN-OBJECT-IMPLEMENTATION.md) and
-[unknown-object design](docs/UNKNOWN-OBJECT-STRATEGY.md).
+## What's new / v0.4
 
+- **撮影ボタンは不要**：検出物体が3フレーム連続して見つかれば、その領域だけを最大640pxのJPEGに自動切り出しします。
+- **非同期**：アプリ側が渡す解析関数にJPEGを渡し、返信を待つ間もカメラ映像・AR表示は止めません。返信したメタデータは元の物体IDへ付与します。
+- **色付きの枠**：黄＝観測中、青＝返信待ち、緑＝記録済み。
+- **再登場**：物体が画面外に出て再び現れたとき、色・模様・縦横比などの軽量な特徴量と照合し、以前の物体IDを再表示します。**似た物体を取り違える可能性があります。**
+- **端末内保存**：記録したID・特徴量・結果をブラウザのlocalStorageに最大24時間保存。**元画像とJPEGは保存しません。** 画面から記録を消去できます。
+- **AIは交換可能**：標準SDK自身は写真を外部に送信しません。都立AIなどの通信は別の任意拡張です。
 
-**An on-device waste object detection SDK for web apps.**  
-Webアプリに組み込める、ごみ・物体認識用JavaScript SDKの試作プロジェクトです。
+**デモの非同期返信は実AIによる解析ではありません。** 物体検出済みのラベルを約1秒後に返す動作確認用のモックです。新しいAIモデルの精度改善を主張するものではありません。
 
-> [!IMPORTANT]
-> **v0.2 は物体名認識の試作版です。** カメラ映像から「bottle」「cup」などの物体を検出し、AR風の枠を重ねます。**材質（PET、金属、ガラスなど）を画像のみから確定判定する機能は未実装**です。物体の信頼度を材質の信頼度として扱いません。
+## SDK imports
 
-## v0.3 — 未知のものから特徴を読み取る
+| Import path | Role |
+|---|---|
+| waste-vision | Camera, local object detection, basic detection results |
+| waste-vision/identity | Optional local object ID registry, reidentification, localStorage |
+| waste-vision/appearance | Optional color/texture descriptor and local cropped JPEG |
+| waste-vision/extensions/auto-recognition | Optional asynchronous crop-to-metadata linking |
+| waste-vision/geometry | Pixel-level geometry from masks |
+| waste-vision/extensions/segmentation | Optional tap-guided segmentation (former v0.3 experiment) |
+| waste-vision/extensions/hybrid | Optional remote AI transport (excluded from default demo) |
 
-スマホのデモで「カメラを開始」→「静止画を撮る」→画像内の物体を
-**タップ**すると、対象の輪郭を推定して緑色で表示します。
-**四角で範囲指定**はAIモデルなしで動作します。
+## Local development
 
-出力は輪郭のピクセル幅・高さ・面積・縦横比などです。
-**大きさは画像上のサイズで、cmではありません。材質は未判定**です。
-Google MagicTouchのセグメンテーションモデルは通常の物体検出とは別の
-任意機能として読み込まれます。
+Node.js 20.19+ or 22.12+.
 
-```js
-import { analyzeMask } from "waste-vision/geometry";
-import { createInteractiveObjectSegmenter } from "waste-vision/extensions/segmentation";
-
-const segmenter = await createInteractiveObjectSegmenter({
-  wasmPath: "/wasm",
-  modelUrl: "/models/interactive_segmentation.task"
-});
-segmenter.setImage(frozenFrameCanvas); // still canvas, NOT a live stream
-const mask = segmenter.segmentPoint(0.5, 0.5); // normalized tap coordinates
-const observation = analyzeMask(mask);
-console.log(observation.geometry.widthPx);
-console.log(observation.material.value); // "unknown"
-segmenter.close();
-```
-
-## v0.2 — 名前を返す認識SDK
-
-- **高精度モデル Lite2 / 軽量モデル Lite0** を画面から選択できます。高精度は比較的重くなります。
-- **数フレームの多数決**で不安定なラベルを抑制し、`result.text`（例: `"bottle"`）を返します。不確実な場合は `null` を返します。
-- `result.recognizedObjects` は安定判定した物体名の配列、`result.detections` は毎フレームの生の結果です。
-- この変更は**物体認識の精度が実測で改善したことを保証しません**。ごみの材質は引き続き `unknown` です。
-
-詳細: [Phase 2 の設計と評価方法](docs/PHASE-2.md)
-
-## Features / 初期版の機能
-
-- カメラ映像を `getUserMedia` で取得（許可が必要）
-- MediaPipe Object Detector / EfficientDet-Lite0 / Lite2 をブラウザ端末内で実行
-- バウンディングボックスとラベルをCanvasに描画（2D AR風オーバーレイ）
-- 検出結果をJavaScriptオブジェクトとして返す
-- 不明な材質を `unknown` として扱い、素材候補のみ提示
-- 検出エンジンを差し替え可能なSDK設計
-- サーバーへカメラ画像をアップロードしない
-
-## Quick start / 試し方
-
-**Node.js 20.19+ または 22.12+ 推奨**（Vite 7）。
-
-```bash
+~~~sh
 git clone https://github.com/Fugu0141/WasteVision.git
 cd WasteVision
 npm install
 npm run prepare:assets
-npm run prepare:segmentation # optional: tap-guided object segmentation
 npm run dev
-```
+~~~
 
-表示された `http://localhost:5173` をブラウザで開き、「カメラを開始」を押してください。
+Open http://localhost:5173 in a browser. A phone needs HTTPS for camera permission; GitHub Pages is an example.
 
-`prepare:assets` は MediaPipe のWASMを `node_modules` から `public/wasm` にコピーし、Googleが公開するEfficientDet-Lite0 / Lite2のモデルを `public/models` にダウンロードします。**初回セットアップにはインターネット接続が必要**です。実行時は自己ホストしたモデル/WASMを使用し、映像推論はローカルで実行します。npm依存パッケージはビルド後にアプリへ同梱されます。完全オフライン配信には、ビルド済みファイルを配布/キャッシュしてください。
+The optional MagicTouch segmentation model used by the old v0.3 module can be prepared separately with npm run prepare:segmentation.
 
-> カメラを使うには HTTPS または localhost などの安全なコンテキストが必要です。スマホからLAN内の `http://192.168...` にアクセスするだけでは通常カメラを利用できません。
+## v0.4 async integration
 
-## スマートフォンで試す
+~~~js
+import { createObjectRegistry } from "waste-vision/identity";
+import { createAutoRecognition } from "waste-vision/extensions/auto-recognition";
 
-GitHub Pages の公開ワークフローを追加しています。リポジトリの **Settings → Pages → Build and deployment → Source: GitHub Actions** を選び、Actions で Deploy WasteVision demo の成功を確認してください。
-
-公開先: **https://fugu0141.github.io/WasteVision/** （GitHub Actionsへの切替後）。
-
-**カメラが開かない場合**: [カメラ診断ページ](https://fugu0141.github.io/WasteVision/camera-test.html)を開き、`secureContext` と `cameraApiAvailable` を確認してください。このページはnpmやAIモデルに依存しません。カメラ診断ページが成功して本体が失敗する場合は、PagesのSourceがGitHub Actionsになっていること、Actionsのデプロイが成功していることを確認してください。初回公開後、キャッシュを消して再読み込みしてください。
-
-> 注意: GitHub Pagesでbranchベースの自動公開とGitHub Actionsによるカスタムデプロイが両方動くと、ビルド前のソースが配信される可能性があります。**Sourceは必ず GitHub Actions に統一してください。**
-
-HTTPのLANアドレスではカメラ権限を使用できない場合があります。HTTPSで開いてください。開始ボタンを押すとまずカメラ権限を要求し、映像を表示してからAIモデルを読み込みます。
-
-## SDK API (prototype)
-
-```js
-import { createWasteScanner, createMediaPipeDetector } from "./src/index.js";
-
-const scanner = createWasteScanner({
-  video: document.querySelector("video"),
-  overlay: document.querySelector("canvas"),
-  detectorFactory: () => createMediaPipeDetector({
-    wasmPath: "/wasm",
-    modelUrl: "/models/efficientdet_lite2.tflite",
-  }),
-  onCameraReady: () => console.log("Camera ready, loading AI..."),
-  fps: 5,
-  onResult: (result) => console.log(result),
+// Pass these to your existing createWasteScanner onResult callback.
+const memory = createObjectRegistry({
+  storage: localStorage,   // omit for memory-only storage
+  maxObjects: 60,
+  ttlMs: 24 * 60 * 60 * 1000
 });
 
-await scanner.start();
-const result = await scanner.scan();
-console.log(result.text); // e.g. "bottle" or null
-console.log(result.recognizedObjects); // e.g. ["bottle"]
-console.log(result.detections[0]?.material); // "unknown"
-scanner.stop();
-scanner.dispose();
-```
+const pipeline = createAutoRecognition({
+  video: document.querySelector("video"),
+  registry: memory,
+  onCrop({id,crop}) {
+    console.log("JPEG crop:",id,crop.blob,crop.width,crop.height);
+  },
+  async analyze({id,crop,localLabel,signal}) {
+    // App-specific model, or an explicitly authorized external provider.
+    // This example intentionally returns the local detector hint only.
+    return {label:localLabel,material:"unknown",source:"example"};
+  },
+  onUpdate({visible}) {
+    console.log("AR object records:",visible);
+  }
+});
 
-戻り値の例:
+// In createWasteScanner({..., onResult(result) {...}}):
+pipeline.ingest(result.detections);
 
-```json
-{
-  "timestampMs": 13500,
-  "text": "bottle",
-  "recognizedObjects": ["bottle"],
-  "stableDetections": [{"object": "bottle", "stability": {"observations": 3, "window": 3}}],
-  "detections": [
-    {
-      "object": "bottle",
-      "objectConfidence": 0.86,
-      "material": "unknown",
-      "materialConfidence": null,
-      "materialCandidates": ["plastic", "glass", "metal"],
-      "needsConfirmation": true,
-      "boundingBox": {"x": 100, "y": 50, "width": 90, "height": 180}
-    }
-  ]
-}
-```
+// On camera stop: keep memory and pending replies while clearing stale positions.
+pipeline.pause();
 
-※ この例の数値は架空の値です。材質候補は物体ラベルに基づくヒントであり、画像からの材質推定結果ではありません。
+// To remove all locally stored records: pipeline.clear()
+// To release pending work: pipeline.dispose()
+~~~
 
-## Architecture
+The automatic crop is associated with an ID, and an async response is
+attached to **that same ID** even if the object has left the frame.
 
-```text
-Camera (getUserMedia)
-    → Detector adapter (MediaPipe / replaceable)
-    → Object detections with scores and bounding boxes
-    → Material resolver (v0.1: unknown + possible candidates)
-    → WasteScanner API callbacks + Canvas overlay
-    → Host app (e.g. Samurai)
-```
+## Limitations and privacy
 
-設計方針と拡張予定: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- Automatic recognition still requires the existing detector to detect a
+  bounding box. Truly novel objects outside COCO classes will not enter the
+  automatic tracker until a class-agnostic detector is added.
+- Local appearance-based reidentification is **heuristic**. Two visually
+  identical cans/bottles may be confused; changes in lighting, pose or
+  occlusion can defeat a match. This is not 3D AR world anchoring.
+- Bounding-box crop may include background. Pixel dimensions are not physical
+  centimeters; materials PET/glass/metal cannot be verified from a label.
+- Stored appearance features can still be privacy-relevant, although raw
+  photos are not persisted. The default demo has a clear-memory control.
+- Crops are never automatically uploaded. Integrating an outside AI requires
+  separate app-side permission and safe credential handling.
+- Real-device reidentification accuracy and heat/battery impact have not yet
+  been measured; GitHub Actions checks do not substitute for field tests.
 
-## Privacy & limitations
-
-- モデル推論はブラウザ内で実行します。SDK自身は画像をサーバーに送信しません。
-- MediaPipeは利用状況・性能に関するメトリクス送信があり得ます。プロダクト運用前にMediaPipeのプライバシー通知を確認してください。
-- COCO学習済み物体検出モデルは「一般物体」を認識します。ごみの分別区分や樹脂種別の確定には使用できません。
-- ARは2D画像オーバーレイです。WebXRの空間追跡・3D計測は含みません。
-- ごみの出し方は自治体によって異なります。WasteVisionは分別判断そのものを行いません。
-
-## Optional extension — not part of the default SDK
-
-```js
-// Import only when your application explicitly needs it:
-import {
-  captureWasteSnapshot,
-  recognizeWasteSnapshot,
-  createHttpRecognitionProvider
-} from "waste-vision/extensions/hybrid";
-```
-
-The optional extension remains prototype-only; configuring a provider and
-obtaining consent are the application's responsibilities. See
-[Hybrid Vision](docs/PHASE-3-HYBRID.md).
+Older design and implementation documentation:
+[Object geometry v0.3](docs/UNKNOWN-OBJECT-IMPLEMENTATION.md),
+[Unknown-object strategy](docs/UNKNOWN-OBJECT-STRATEGY.md),
+[Optional Hybrid Vision](docs/PHASE-3-HYBRID.md),
+[Architecture](docs/ARCHITECTURE.md).
 
 ## Development
 
-```bash
+~~~sh
 npm test
 npm run build
-```
+~~~
 
-## Status
-
-**Experimental / v0.3** — APIは変更される可能性があります。ライセンス・配布条件は公開前に確定します。
-
-### References
-
-- [MediaPipe Object Detector](https://developers.google.com/edge/mediapipe/solutions/vision/object_detector)
-- [getUserMedia (MDN)](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia)
+**Experimental / v0.4** — API and package design may evolve.

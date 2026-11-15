@@ -1,5 +1,10 @@
 # v0.3 — Class-agnostic unknown-object geometry
 
+> This document describes the earlier optional segmentation experiment.
+> Since v0.4, the default demo uses automatic cropping and AR memory instead
+> of a manual freeze-frame button. See [v0.4 guide](AUTO-TRACKING.md).
+
+
 **Status:** Implemented prototype. The browser demo is deployed via
 [GitHub Pages](https://fugu0141.github.io/WasteVision/); tested by GitHub
 Actions for unit tests / download / production build. Real-device segmentation
