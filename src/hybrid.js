@@ -69,7 +69,7 @@ export function normalizeRemoteRecognition(value) {
   const label = typeof value.label === "string" ? value.label.trim() :
     typeof value.object === "string" ? value.object.trim() : "";
   // Only allow a concise plain-text object name, never model instructions.
-  if (!label || label.length > 60 || !/^[\\p{L}\\p{N}_ -]+$/u.test(label)) {
+  if (!label || label.length > 60 || !/^[\p{L}\p{N}_ -]+$/u.test(label)) {
     return empty("unknown", "invalid_label");
   }
   return {
