@@ -1,122 +1,187 @@
-import { createMediaPipeDetector, createWasteScanner, getObjectDisplayName } from "../src/index.js";
-import { initializeUnknownObjectDemo } from "./unknown-object.js";
+import {
+  createMediaPipeDetector, createWasteScanner, getObjectDisplayName
+} from "../src/index.js";
+import { drawTrackedOverlay } from "../src/overlay.js";
+import { createObjectRegistry } from "../src/identity.js";
+import { createAutoRecognition } from "../src/extensions/auto-recognition.js";
 
-const video = document.querySelector("#camera");
-const overlay = document.querySelector("#overlay");
-const startButton = document.querySelector("#start");
-const stopButton = document.querySelector("#stop");
-const modeSelect = document.querySelector("#modelMode");
-const copyButton = document.querySelector("#copy");
-const status = document.querySelector("#status");
-const primary = document.querySelector("#primary");
-const recognitionHint = document.querySelector("#recognitionHint");
-const results = document.querySelector("#results");
-const json = document.querySelector("#json");
+const $ = id => document.getElementById(id);
+const video = $("camera");
+const overlay = $("overlay");
+const startButton = $("start");
+const stopButton = $("stop");
+const modelMode = $("modelMode");
+const status = $("status");
+const primary = $("primary");
+const results = $("results");
+const json = $("json");
+const copyButton = $("copy");
+const tracked = $("trackedObjects");
+const memoryNote = $("memoryNote");
+const clearButton = $("clearMemory");
+const lastCrop = $("lastCrop");
+const cropInfo = $("cropInfo");
 startButton.dataset.sdkReady = "true";
 
 let scanner = null;
-const unknownDemo = initializeUnknownObjectDemo({ video, getScanner: () => scanner });
+let previewUrl = null;
+let storage = null;
+try { storage = window.localStorage; } catch { /* disabled browser storage */ }
+
+const registry = createObjectRegistry({
+  storage,
+  ttlMs:24*60*60*1000,
+  maxObjects:60,
+  minObservations:3
+});
+const labels = {
+  observing:"検出中", pending:"解析待ち", known:"記録済み",
+  captured:"切り出し済み", error:"解析エラー", unresolved:"判定不明"
+};
+
+function updateMemoryUi({visible,records}) {
+  const known=records.filter(r=>r.status==="known").length;
+  memoryNote.textContent = "現在の検出: " + visible.length + "件 / 記録: " +
+    known + "件 / 処理待ち: " + visible.filter(r=>r.status==="pending").length +
+    "件。特徴量と結果のみ" + (storage ? "この端末に最大24時間保存" : "メモリ内に保存") + "。写真は保存しません。";
+  if (scanner?.running) drawTrackedOverlay(overlay,video,visible);
+  tracked.replaceChildren();
+  if(!visible.length) {
+    const li=document.createElement("li");
+    li.textContent="まだ物体がありません。カメラに物体を向けてください。";
+    tracked.append(li);
+  }
+  for(const r of visible) {
+    const li=document.createElement("li");
+    li.className="tracked-"+r.status;
+    const knownLabel = typeof r.metadata?.label==="string" ? r.metadata.label :
+      (r.localLabel||"unknown");
+    li.textContent="● "+labels[r.status]+" / #"+r.id.slice(0,8)+
+      " / "+getObjectDisplayName(knownLabel)+
+      (r.reidentified?"（再登場）":"");
+    tracked.append(li);
+  }
+  json.textContent=JSON.stringify({
+    activeObjects:visible,
+    storedObjects:records.map(({boundingBox,...r})=>r),
+    provider:"demo_local_label_only"
+  },null,2);
+}
+const pipeline=createAutoRecognition({
+  video, registry,
+  onUpdate:updateMemoryUi,
+  onCrop:({id,crop})=>{
+    if(previewUrl)URL.revokeObjectURL(previewUrl);
+    previewUrl=URL.createObjectURL(crop.blob);
+    lastCrop.src=previewUrl;
+    lastCrop.hidden=false;
+    cropInfo.textContent="自動切り出し: #"+id.slice(0,8)+
+      " / "+crop.width+"×"+crop.height+"px / "+crop.blob.size+"bytes" +
+      "（端末外への画像送信なし）";
+  },
+  // This is a DEMO stub, not a second AI. Real models / approved cloud APIs
+  // are supplied by the host application through the same async callback.
+  analyze:async ({crop,localLabel,signal})=>{
+    await new Promise(resolve=>{
+      const timer=setTimeout(resolve,950);
+      signal.addEventListener("abort",()=>{
+        clearTimeout(timer);resolve();
+      },{once:true});
+    });
+    if(signal.aborted)return null;
+    return {
+      label:localLabel ?? "unknown",
+      material:"unknown",
+      source:"demo_local_detector_label",
+      cropWidthPx:crop.width,
+      cropHeightPx:crop.height
+    };
+  },
+  onError:error=>console.error("Object analysis failed:",error)
+});
+updateMemoryUi({visible:[],records:registry.list()});
 
 function render(result) {
-  json.textContent = JSON.stringify(result, null, 2);
-  if (result.text) {
-    primary.textContent = getObjectDisplayName(result.text) + " / " + result.text;
-    recognitionHint.textContent = "複数フレームで安定した検出結果（材質ではありません）";
-  } else {
-    primary.textContent = "認識中…";
-    recognitionHint.textContent = "物体にカメラを向けてください。数フレームの一致を待っています。";
-  }
+  primary.textContent=result.text
+    ? getObjectDisplayName(result.text)+" / "+result.text
+    : "認識中…";
+  pipeline.ingest(result.detections);
   results.replaceChildren();
-  if (!result.stableDetections.length) {
-    const li = document.createElement("li");
-    li.textContent = "安定した物体名はまだありません（単発検出：" +
-      result.detections.length + "件）。";
-    results.append(li);
-    return;
-  }
-  for (const item of result.stableDetections) {
-    const li = document.createElement("li");
-    const label = getObjectDisplayName(item.object);
-    const score = item.objectConfidence == null
-      ? "今回のスコアなし" : "今回のスコア " + Math.round(item.objectConfidence * 100) + "%";
-    li.textContent = label + " (" + item.object + ") — " +
-      item.stability.observations + "/" + item.stability.window +
-      "フレーム一致、" + score;
-    results.append(li);
-  }
+  const count=result.detections.length;
+  const li=document.createElement("li");
+  li.textContent="ローカル物体検出: "+count+"件。"+
+    "認識した物体に色付きの枠とIDを付け、自動で切り出します。";
+  results.append(li);
 }
-
 function releaseScanner() {
-  unknownDemo.setCameraRunning(false);
   scanner?.dispose();
-  scanner = null;
-  modeSelect.disabled = false;
-  stopButton.disabled = true;
-  startButton.disabled = false;
+  scanner=null;
+  startButton.disabled=false;
+  stopButton.disabled=true;
+  modelMode.disabled=false;
+  // Keep registry and outstanding async results across camera restarts.
 }
-
 function explainError(error) {
-  if (!window.isSecureContext) return "HTTPSまたはlocalhostで開いてください。";
-  if (error?.name === "NotAllowedError") return "ブラウザのカメラ許可設定を確認してください。";
-  if (error?.name === "NotFoundError") return "利用可能なカメラが見つかりません。";
-  return error?.message ?? String(error);
+  if(!window.isSecureContext)return "HTTPSまたはlocalhostで開いてください。";
+  if(error?.name==="NotAllowedError")return "カメラの許可が必要です。";
+  return error?.message??String(error);
 }
-
-startButton.addEventListener("click", async () => {
-  startButton.disabled = true;
-  modeSelect.disabled = true;
-  status.textContent = "カメラの使用許可を確認しています…";
+startButton.addEventListener("click",async()=>{
+  startButton.disabled=true;
+  modelMode.disabled=true;
+  status.textContent="カメラの許可を確認しています…";
   try {
-    const base = import.meta.env.BASE_URL;
-    const modelName = modeSelect.value === "lite2"
-      ? "efficientdet_lite2.tflite" : "efficientdet_lite0.tflite";
-    const fps = modeSelect.value === "lite2" ? 4 : 6;
-    scanner = createWasteScanner({
-      video, overlay,
-      detectorFactory: () => createMediaPipeDetector({
-        wasmPath: base + "wasm",
-        modelUrl: base + "models/" + modelName,
-        scoreThreshold: 0.35,
-        maxResults: 8
+    const base=import.meta.env.BASE_URL;
+    scanner=createWasteScanner({
+      video,overlay,
+      detectorFactory:()=>createMediaPipeDetector({
+        wasmPath:base+"wasm",
+        modelUrl:base+"models/"+
+          (modelMode.value==="lite2"?"efficientdet_lite2.tflite":"efficientdet_lite0.tflite"),
+        scoreThreshold:0.35,maxResults:8
       }),
-      fps,
-      temporal: { minObservations: 3, windowSize: 5 },
-      onCameraReady: () => {
-        status.textContent = "カメラ接続成功。AIモデルを読み込み中…";
+      fps:modelMode.value==="lite2"?4:6,
+      onCameraReady:()=>{
+        status.textContent="カメラ接続成功。端末内AIを初期化しています…";
       },
-      onResult: render,
-      onError: error => {
-        console.error("WasteVision recognition error:", error);
-        status.textContent = "認識エラー: " + explainError(error);
+      onResult:render,
+      onError:error=>{
+        console.error(error);
+        status.textContent="認識エラー: "+explainError(error);
         releaseScanner();
       }
     });
     await scanner.start();
-    status.textContent = modeSelect.value === "lite2"
-      ? "高精度モードでスキャン中（端末内AI）"
-      : "軽量モードでスキャン中（端末内AI）";
-    stopButton.disabled = false;
-    unknownDemo.setCameraRunning(true);
-  } catch (error) {
-    console.error("WasteVision startup error:", error);
-    status.textContent = "開始できません: " + explainError(error);
+    stopButton.disabled=false;
+    status.textContent="スキャン中。黄＝観測、青＝返信待ち、緑＝保存済み。";
+  }catch(error) {
+    console.error(error);
+    status.textContent="開始できません: "+explainError(error);
     releaseScanner();
   }
 });
-
-stopButton.addEventListener("click", () => {
+stopButton.addEventListener("click",()=>{
   releaseScanner();
-  status.textContent = "停止しました。";
-  primary.textContent = "停止中";
-  recognitionHint.textContent = "別の認識モードを選んで再開できます。";
+  status.textContent="カメラを停止しました。認識記録は残っています。";
 });
-
-copyButton.addEventListener("click", async () => {
-  try {
+clearButton.addEventListener("click",()=>{
+  pipeline.clear();
+  if(previewUrl)URL.revokeObjectURL(previewUrl);
+  previewUrl=null;
+  lastCrop.hidden=true;
+  lastCrop.removeAttribute("src");
+  cropInfo.textContent="切り出し画像は保持していません。";
+});
+copyButton.addEventListener("click",async()=>{
+  try{
     await navigator.clipboard.writeText(json.textContent);
-    copyButton.textContent = "コピーしました";
-  } catch {
-    copyButton.textContent = "コピーできませんでした";
+    copyButton.textContent="コピーしました";
+  }catch{
+    copyButton.textContent="コピーできませんでした";
   }
 });
-window.addEventListener("pagehide", () => { unknownDemo.dispose(); scanner?.dispose(); });
+window.addEventListener("pagehide",()=>{
+  pipeline.dispose();
+  scanner?.dispose();
+  if(previewUrl)URL.revokeObjectURL(previewUrl);
+});

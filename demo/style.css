@@ -35,15 +35,16 @@ a { color: #63e7c1; }
 .primary{font-size:clamp(1.4rem,3vw,2rem);font-weight:800;color:#64f1c7;margin:0 0 7px;overflow-wrap:anywhere;}
 .hint{color:#afcbd3;font-size:12px;margin:0 0 19px;}
 @media(max-width:600px){.controls{align-items:stretch;}.mode-control{width:100%;justify-content:space-between;}}
-
-.unknown-panel{margin-top:16px;}
-.unknown-panel .note{line-height:1.7;}
-.unknown-controls{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:14px 0;}
-.unknown-controls label{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:700;color:#bdd6dc;}
-.unknown-controls select{background:#153946;color:#f1feff;border:1px solid #34788a;border-radius:10px;padding:10px;font:inherit;max-width:260px;}
-.snapshot-stage{position:relative;width:100%;max-width:768px;border:1px solid #34788a;border-radius:12px;overflow:hidden;line-height:0;margin:12px 0;}
-.snapshot-stage[hidden]{display:none;}
-#snapshotCanvas{display:block;position:relative;inset:auto;width:100%;height:auto;touch-action:none;pointer-events:auto;cursor:crosshair;}
-#maskOverlay{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
-#copyUnknown{background:#234854;color:#e5f4f6;font-size:12px;padding:7px 10px;}
-@media(max-width:650px){.unknown-controls{align-items:stretch;}.unknown-controls label{width:100%;justify-content:space-between;}}
+.memory-panel{margin-top:16px;}
+.memory-panel .note{line-height:1.7;}
+.memory-panel ul{list-style:none;padding:0;line-height:1.7;}
+.memory-panel li{border-left:4px solid #e7ae45;padding:8px 11px;margin-bottom:7px;background:#123443;border-radius:0 8px 8px 0;}
+.memory-panel li.tracked-observing{border-color:#f6bb50;color:#ffd58d;}
+.memory-panel li.tracked-pending{border-color:#51c9ff;color:#b1e9ff;}
+.memory-panel li.tracked-known{border-color:#48e3a2;color:#a2f5d1;}
+.memory-panel li.tracked-error{border-color:#ff7474;color:#ffc1c1;}
+.memory-panel li.tracked-captured{border-color:#bc9cff;color:#e6dbff;}
+.memory-detail{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin:16px 0;}
+.crop-preview{max-width:125px;max-height:125px;object-fit:contain;border-radius:12px;border:1px solid #34788a;}
+.crop-preview[hidden]{display:none;}
+#clearMemory{background:#284e5d;color:#d5edf3;padding:8px 12px;font-size:12px;}
