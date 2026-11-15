@@ -48,19 +48,6 @@
           <pre id="json" aria-live="off">{ "detections": [] }</pre>
         </div>
       </section>
-      <section class="info-card hybrid-panel" aria-label="ハイブリッド画像認識">
-        <div class="card-title"><h2>Hybrid Vision / 画像の確認</h2></div>
-        <p class="note">まず端末内で被写体を撮影します。物体が検出されていなくても中央の領域を撮影できます。</p>
-        <label class="check-label"><input id="autoShot" type="checkbox" /> 安定した物体を検出したら、画像を自動で撮影する（送信はしません）</label>
-        <div class="snapshot-actions">
-          <button type="button" id="capture" disabled>物体を撮影する</button>
-          <button type="button" id="sendImage" disabled>撮影画像をAIに送る</button>
-        </div>
-        <img id="shotPreview" class="shot-preview" alt="端末内で切り出した送信候補の画像" hidden />
-        <p id="shotStatus" role="status" class="note">撮影待ち。外部AI接続は別途設定が必要です。</p>
-        <pre id="remoteResult" aria-live="polite">{ "status": "provider_unavailable" }</pre>
-        <p class="note">※写真は確認操作後にのみ送信します。都立AIとの実際の通信には、認証情報を守る専用の中継サーバーと利用許可が必要です。</p>
-      </section>
       <footer>
         <p>2D AR風オーバーレイ / 物体名をテキスト出力 / 材質判定は未実装。</p>
         <a href="./camera-test.html">カメラだけを診断する</a>

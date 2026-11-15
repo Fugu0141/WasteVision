@@ -1,4 +1,4 @@
-# WasteVision v0.3 — Opt-in Hybrid Vision
+# Optional extension — Hybrid Vision (NOT in default SDK)
 
 ## Why
 
@@ -9,7 +9,7 @@ The general COCO object detector cannot identify many household-waste items and 
 - `captureWasteSnapshot(video, { boundingBox? })`: creates a cropped JPEG locally using Canvas, with bounding-box padding. With no detection it crops the center of the video instead, so a missed detection does not block the workflow.
 - `recognizeWasteSnapshot({ snapshot, provider, consent, localHint })`: passes the chosen JPEG to an optional app-provided recognition function **only when consent is explicitly true**. Missing consent returns `consent_required`; a missing provider returns `provider_unavailable`. Free-form provider text does not directly become disposal advice.
 - `createHttpRecognitionProvider({ url })`: transport to an **application-owned HTTPS proxy**; sends a `multipart/form-data` request with `image` (JPEG) and optional `localHint` (untrusted hint). No API secrets are included.
-- Demo: manually snapshot central or detected object, preview crop, and optionally auto-capture locally after a stable detection. **Auto-capture never auto-uploads**. The external-AI button is disabled until a proxy is configured. The existing camera/AR/local text API is unchanged.
+- The previous hybrid demonstration UI was **removed from the default demo**. The helper functions remain importable through the explicit extension entry point.
 - All camera images stay local unless the user approves a *specific preview image* and a configured provider is available.
 
 ## State machine
@@ -29,7 +29,7 @@ local camera stream
 
 ## Provider contract (not the native Toritsu AI API)
 
-The public demo is on **GitHub Pages**, which cannot host a server-side secret-bearing endpoint. The backend **must** be supplied separately; the actual native Toritsu AI image-upload payload, attachment authorization and CORS/allowed-client rules have not been confirmed.
+The default GitHub Pages demo is now **local-only** and has no cloud upload UI. This optional extension is available only by explicit import. GitHub Pages itself which cannot host a server-side secret-bearing endpoint. The backend **must** be supplied separately; the actual native Toritsu AI image-upload payload, attachment authorization and CORS/allowed-client rules have not been confirmed.
 
 Example application-owned endpoint contract (proposed, **not** evidence of a working Tokyo-school AI integration):
 
@@ -49,7 +49,7 @@ import {
   captureWasteSnapshot,
   recognizeWasteSnapshot,
   createHttpRecognitionProvider
-} from "./src/index.js";
+} from "waste-vision/extensions/hybrid";
 
 // After the user starts the camera:
 const snapshot = await captureWasteSnapshot(video, {
@@ -69,9 +69,15 @@ console.log(result.status, result.text);
 
 When integrating into a third-party app, `provider` can also be a supplied `async ({image,localHint,signal}) => ({label: "bottle"})` function.
 
-### GitHub Pages demo
+### Default demo and extension boundary
 
-Optional compile-time URL: `VITE_WASTEVISION_AI_PROXY`. This value is **public** and must be just a trusted backend URL, never a secret. Without it, the demo can still perform local capture and preview, but it does not transmit to an AI. Setting an endpoint alone does NOT make that endpoint speak Toritsu AI; the server adapter must be implemented and approved.
+The main demo no longer imports the hybrid functionality. The extension code is
+retained, but **no default UI, network client or remote recognition path runs**.
+
+When an application opts in, it should supply a separate approved HTTPS backend
+and explicit per-image consent. Any Vite-exposed URL is public; never put an API
+credential in a bundled environment variable. This is not a Tokyo-school AI
+integration, only a transport contract.
 
 ## Policy boundaries
 

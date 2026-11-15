@@ -1,5 +1,15 @@
 # WasteVision
 
+> **SDK scope (v0.2.1):** The default entry point is a small, on-device
+> object-detection SDK. Optional image upload / cloud AI integration is
+> isolated under `waste-vision/extensions/hybrid` and is **not** loaded by
+> the default demo. No cloud API or upload is required.
+
+Our next design priority is **unknown-object geometry and evidence-based
+material hints**, not forcing a COCO object name. See
+[Unknown-object recognition design](docs/UNKNOWN-OBJECT-STRATEGY.md).
+
+
 **An on-device waste object detection SDK for web apps.**  
 Webアプリに組み込める、ごみ・物体認識用JavaScript SDKの試作プロジェクトです。
 
@@ -125,6 +135,21 @@ Camera (getUserMedia)
 - COCO学習済み物体検出モデルは「一般物体」を認識します。ごみの分別区分や樹脂種別の確定には使用できません。
 - ARは2D画像オーバーレイです。WebXRの空間追跡・3D計測は含みません。
 - ごみの出し方は自治体によって異なります。WasteVisionは分別判断そのものを行いません。
+
+## Optional extension — not part of the default SDK
+
+```js
+// Import only when your application explicitly needs it:
+import {
+  captureWasteSnapshot,
+  recognizeWasteSnapshot,
+  createHttpRecognitionProvider
+} from "waste-vision/extensions/hybrid";
+```
+
+The optional extension remains prototype-only; configuring a provider and
+obtaining consent are the application's responsibilities. See
+[Hybrid Vision](docs/PHASE-3-HYBRID.md).
 
 ## Development
 

@@ -1,11 +1,12 @@
 {
   "name": "waste-vision",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "On-device object recognition SDK with temporal stabilization",
   "type": "module",
   "exports": {
-    ".": "./src/index.js"
+    ".": "./src/index.js",
+    "./extensions/hybrid": "./src/extensions/hybrid.js"
   },
   "scripts": {
     "dev": "vite --host 0.0.0.0",
