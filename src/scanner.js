@@ -1,5 +1,6 @@
 import { drawOverlay } from "./overlay.js";
 import { normalizeDetection } from "./materials.js";
+import { createTemporalStabilizer, selectPrimaryObject } from "./temporal.js";
 
 /**
  * Wraps camera management, a replaceable detector, and a result callback.
@@ -11,6 +12,7 @@ export function createWasteScanner({
   detector = null,
   detectorFactory = null,
   fps = 5,
+  temporal = { minObservations: 3, windowSize: 5 },
   onCameraReady = () => {},
   onResult = () => {},
   onError = () => {}
@@ -25,6 +27,7 @@ export function createWasteScanner({
     throw new TypeError("onResult and onError must be functions.");
   }
 
+  const stabilizer = createTemporalStabilizer(temporal);
   let activeDetector = detector;
   let generation = 0;
   let stream = null;
@@ -34,7 +37,10 @@ export function createWasteScanner({
   let animationFrameId = null;
   let lastVideoTime = -1;
   let lastScanTime = -Infinity;
-  let latest = { timestampMs: 0, detections: [] };
+  let latest = {
+    timestampMs: 0, detections: [], stableDetections: [],
+    recognizedObjects: [], primaryObject: null, text: null
+  };
   const minimumInterval = 1000 / Math.max(1, Math.min(15, Number(fps) || 5));
 
   async function scan() {
@@ -43,12 +49,25 @@ export function createWasteScanner({
     if (video.readyState < 2 || !video.videoWidth || !video.videoHeight) return latest;
 
     busy = true;
+    const currentGeneration = generation;
     try {
       const timestampMs = performance.now();
       const raw = await activeDetector.detect(video, timestampMs);
+      if (!running || currentGeneration !== generation) return latest;
       const detections = (raw ?? []).map(normalizeDetection);
-      latest = { timestampMs, detections };
-      drawOverlay(overlay, video, detections);
+      const stableDetections = stabilizer.update(detections);
+      const primaryObject = selectPrimaryObject(
+        stableDetections, video.videoWidth, video.videoHeight
+      );
+      latest = {
+        timestampMs,
+        detections,
+        stableDetections,
+        recognizedObjects: [...new Set(stableDetections.map(item => item.object))],
+        primaryObject,
+        text: primaryObject?.object ?? null
+      };
+      drawOverlay(overlay, video, stableDetections);
       onResult(latest);
       return latest;
     } finally {
@@ -111,6 +130,7 @@ export function createWasteScanner({
         }
         activeDetector = newDetector;
       }
+      stabilizer.reset();
       running = true;
       lastScanTime = -Infinity;
       lastVideoTime = -1;
@@ -131,6 +151,7 @@ export function createWasteScanner({
       stream = null;
     }
     video.srcObject = null;
+    stabilizer.reset();
     drawOverlay(overlay, video, []);
   }
 

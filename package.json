@@ -1,8 +1,8 @@
 {
   "name": "waste-vision",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "On-device browser object detection SDK prototype for waste scanning",
+  "description": "On-device object recognition SDK with temporal stabilization",
   "type": "module",
   "exports": {
     ".": "./src/index.js"
