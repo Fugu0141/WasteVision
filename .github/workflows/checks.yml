@@ -12,6 +12,8 @@ jobs:
           node-version: 22
       - name: Install dependencies
         run: npm install
+      - name: Prepare self-hosted AI assets
+        run: npm run prepare:assets
       - name: Unit tests
         run: npm test
       - name: Build demo
